@@ -1,0 +1,9 @@
+{
+  "python.defaultInterpreterPath": "./backend/venv/bin/python",
+  "vue.server.maxFileSize": 20971520,
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/__pycache__": true,
+    "**/venv": true
+  }
+}
