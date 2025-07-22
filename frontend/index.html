@@ -121,16 +121,33 @@
   <script>
     // Check for modern browser features
     function checkBrowserSupport() {
-      const requiredFeatures = [
-        'MediaDevices' in window && 'getUserMedia' in navigator.mediaDevices,
-        'WebSocket' in window,
-        'fetch' in window,
-        'Promise' in window
-      ];
+      // Check each feature individually and log the results
+      const features = {
+        camera: 'MediaDevices' in window && 'getUserMedia' in navigator.mediaDevices,
+        webSocket: 'WebSocket' in window,
+        fetch: 'fetch' in window,
+        promise: 'Promise' in window,
+        modules: 'noModule' in HTMLScriptElement.prototype
+      };
+
+      // Log feature support for debugging
+      console.log('Browser Feature Support:', features);
       
-      const isSupported = requiredFeatures.every(feature => feature);
+      const isSupported = Object.values(features).every(feature => feature);
+      
+      // Log browser information
+      const browserInfo = {
+        userAgent: navigator.userAgent,
+        vendor: navigator.vendor,
+        features: features
+      };
+      console.log('Browser Information:', browserInfo);
       
       if (!isSupported) {
+        // Show which features are missing
+        const missingFeatures = Object.entries(features)
+          .filter(([_, supported]) => !supported)
+          .map(([feature]) => feature);
         document.getElementById('initial-loading').innerHTML = `
           <div style="text-align: center; padding: 20px;">
             <div style="font-size: 48px; margin-bottom: 20px;">⚠️</div>
@@ -142,8 +159,12 @@
               <li>Modern JavaScript features</li>
             </ul>
             <p>Please update your browser or try a different one.</p>
+            <p><strong>Missing features:</strong><br>
+            ${missingFeatures.join(', ')}</p>
             <p><strong>Recommended browsers:</strong><br>
             Chrome 60+, Firefox 55+, Safari 11+, Edge 79+</p>
+            <p><strong>Current browser:</strong><br>
+            ${navigator.userAgent}</p>
           </div>
         `;
         return false;
@@ -171,6 +192,19 @@
     // Handle errors
     window.addEventListener('error', (e) => {
       console.error('Application error:', e.error);
+      // Show error in UI if loading screen is still visible
+      const loadingElement = document.getElementById('initial-loading');
+      if (loadingElement && loadingElement.style.display !== 'none') {
+        loadingElement.innerHTML = `
+          <div style="text-align: center; padding: 20px;">
+            <div style="font-size: 48px; margin-bottom: 20px;">⚠️</div>
+            <h2>Application Error</h2>
+            <p>An error occurred while loading the application:</p>
+            <p style="color: #ff6b6b;">${e.error?.message || 'Unknown error'}</p>
+            <p>Please try refreshing the page or using a different browser.</p>
+          </div>
+        `;
+      }
     });
     
     window.addEventListener('unhandledrejection', (e) => {
