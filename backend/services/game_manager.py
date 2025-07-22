@@ -1,6 +1,8 @@
 from typing import Dict, List, Optional
 from models.game import Game, GameState
+from sqlmodel import Session
 import logging
+from database import engine
 
 logger = logging.getLogger(__name__)
 
@@ -10,17 +12,51 @@ class GameManager:
         self.player_moves: Dict[str, Dict[str, str]] = {}  # room_id -> {player_id: move}
         self.player_ready: Dict[str, List[str]] = {}  # room_id -> [ready_player_ids]
         
-    def create_game(self, room_id: str) -> Game:
+    def create_game(self, room_id: str) -> Optional[Game]:
         """Create a new game for the room"""
-        game = Game(
-            room_id=room_id,
-            state=GameState.WAITING
-        )
-        self.games[room_id] = game
-        self.player_moves[room_id] = {}
-        self.player_ready[room_id] = []
-        logger.info(f"Created game for room {room_id}")
-        return game
+        try:
+            if room_id in self.games:
+                logger.warning(f"Room {room_id} already exists")
+                return None
+
+            # Create game instance
+            game = Game(
+                room_id=room_id,
+                state=GameState.WAITING
+            )
+
+            # Initialize in-memory data
+            self.games[room_id] = game
+            self.player_moves[room_id] = {}
+            self.player_ready[room_id] = []
+            
+            # Create session and save to database
+            with Session(engine) as session:
+                session.add(game)
+                try:
+                    session.commit()
+                    session.refresh(game)
+                    logger.info(f"Created game for room {room_id} and saved to database")
+                except Exception as e:
+                    session.rollback()
+                    logger.error(f"Database error creating game for room {room_id}: {str(e)}")
+                    # Clean up in-memory data since DB save failed
+                    del self.games[room_id]
+                    del self.player_moves[room_id]
+                    del self.player_ready[room_id]
+                    return None
+            
+            return game
+        except Exception as e:
+            logger.error(f"Failed to create game for room {room_id}: {str(e)}")
+            # Clean up any in-memory data that might have been created
+            if room_id in self.games:
+                del self.games[room_id]
+            if room_id in self.player_moves:
+                del self.player_moves[room_id]
+            if room_id in self.player_ready:
+                del self.player_ready[room_id]
+            return None
     
     def get_game(self, room_id: str) -> Optional[Game]:
         """Get game by room ID"""

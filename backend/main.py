@@ -1,6 +1,6 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from sqlmodel import SQLModel, create_engine, Session
+from sqlmodel import Session
 import uvicorn
 import json
 import uuid
@@ -22,12 +22,8 @@ from utils.logging_utils import setup_logging, log_gesture_detection, log_commun
 setup_logging()
 logger = logging.getLogger(__name__)
 
-# Database setup
-DATABASE_URL = "sqlite:///./rps_game.db"
-engine = create_engine(DATABASE_URL)
-
-def create_db_and_tables():
-    SQLModel.metadata.create_all(engine)
+# Import database module
+from database import create_db_and_tables
 
 # FastAPI app
 app = FastAPI(title="Rock Paper Scissors Online API", version="1.0.0")
@@ -103,9 +99,20 @@ async def root():
 
 @app.post("/create-room")
 async def create_room():
-    room_id = str(uuid.uuid4())[:8].upper()
-    game_manager.create_game(room_id)
-    return {"room_id": room_id}
+    try:
+        room_id = str(uuid.uuid4())[:8].upper()
+        logger.info(f"Attempting to create room with ID: {room_id}")
+        
+        game = game_manager.create_game(room_id)
+        if not game:
+            logger.error(f"Failed to create game for room: {room_id}")
+            raise HTTPException(status_code=500, detail="Failed to create game")
+            
+        logger.info(f"Successfully created room with ID: {room_id}")
+        return {"room_id": room_id}
+    except Exception as e:
+        logger.error(f"Error creating room: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to create room. Please try again.")
 
 @app.get("/room/{room_id}/status")
 async def get_room_status(room_id: str):
