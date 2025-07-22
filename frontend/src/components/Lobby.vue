@@ -7,17 +7,6 @@
         <p class="text-blue-200">Challenge friends to a real-time Rock Paper Scissors battle</p>
       </div>
 
-      <!-- Player Name Input -->
-      <div class="mb-6">
-        <input
-          v-model="playerName"
-          type="text"
-          placeholder="Enter Your Name"
-          class="w-full px-4 py-3 rounded-lg bg-white bg-opacity-20 border border-white border-opacity-30 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
-          maxlength="20"
-        >
-      </div>
-
       <div class="grid md:grid-cols-2 gap-6">
         <!-- Create Room -->
         <div class="bg-white bg-opacity-20 rounded-lg p-6">
@@ -28,7 +17,7 @@
           <p class="text-blue-200 mb-6">Start a new game and invite a friend</p>
           <button 
             @click="createRoom"
-            :disabled="isCreating || !playerName.trim()"
+            :disabled="isCreating"
             class="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-500 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200"
           >
             <span v-if="!isCreating">Create New Room</span>
@@ -57,7 +46,7 @@
             >
             <button 
               @click="joinRoom"
-              :disabled="!joinRoomId.trim() || !playerName.trim() || isJoining"
+              :disabled="!joinRoomId.trim() || isJoining"
               class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-500 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200"
             >
               <span v-if="!isJoining">Join Room</span>
@@ -102,21 +91,20 @@ import { createRoom as apiCreateRoom, getRoomStatus } from '../services/api.js'
 
 const emit = defineEmits(['join-game'])
 
-const playerName = ref('')
 const joinRoomId = ref('')
 const isCreating = ref(false)
 const isJoining = ref(false)
 
+const generatePlayerName = () => {
+  const prefix = ['Player', 'Gamer', 'User']
+  const randomNum = Math.floor(Math.random() * 9999).toString().padStart(4, '0')
+  return `${prefix[Math.floor(Math.random() * prefix.length)]}${randomNum}`
+}
+
 const createRoom = async () => {
-  if (isCreating.value || !playerName.value.trim()) return
+  if (isCreating.value) return
 
   isCreating.value = true
-  
-  if (!playerName.value.trim()) {
-    window.appMethods?.showError('Please enter your name first')
-    isCreating.value = false
-    return
-  }
   
   try {
     window.appMethods?.showLoading('Creating room...')
@@ -127,7 +115,7 @@ const createRoom = async () => {
     window.appMethods?.hideLoading()
     
     // Join the created room
-    emit('join-game', { roomId, playerName: playerName.value.trim() })
+    emit('join-game', { roomId, playerName: generatePlayerName() })
     
   } catch (error) {
     console.error('Error creating room:', error)
@@ -139,12 +127,7 @@ const createRoom = async () => {
 }
 
 const joinRoom = async () => {
-  if (!joinRoomId.value.trim() || !playerName.value.trim() || isJoining.value) return
-  
-  if (!playerName.value.trim()) {
-    window.appMethods?.showError('Please enter your name first')
-    return
-  }
+  if (!joinRoomId.value.trim() || isJoining.value) return
 
   isJoining.value = true
   const roomId = joinRoomId.value.trim().toUpperCase()
@@ -162,7 +145,7 @@ const joinRoom = async () => {
     window.appMethods?.hideLoading()
     
     // Join the room
-    emit('join-game', { roomId, playerName: playerName.value.trim() })
+    emit('join-game', { roomId, playerName: generatePlayerName() })
     
   } catch (error) {
     console.error('Error joining room:', error)

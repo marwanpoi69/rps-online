@@ -5,12 +5,23 @@
   "outputDirectory": "dist",
   "routes": [
     {
+      "src": "^/assets/(.*)",
+      "dest": "/assets/$1"
+    },
+    {
+      "src": "^/favicon.ico",
+      "dest": "/favicon.ico"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
       "src": "/(.*)",
-      "dest": "/"
+      "dest": "/index.html"
     }
   ],
   "env": {
-    "VITE_API_URL": "@api_url",
-    "VITE_WS_URL": "@ws_url"
+    "VITE_API_URL": "https://rps-online-production.up.railway.app",
+    "VITE_WS_URL": "wss://rps-online-production.up.railway.app"
   }
 }
