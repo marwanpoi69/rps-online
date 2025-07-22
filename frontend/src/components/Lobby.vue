@@ -5,6 +5,7 @@
         <div class="text-6xl mb-4">🎮</div>
         <h2 class="text-3xl font-bold text-white mb-2">Welcome to RPS Online!</h2>
         <p class="text-blue-200">Challenge friends to a real-time Rock Paper Scissors battle</p>
+        <p :class="{'text-green-400': isConnected, 'text-red-400': !isConnected}" class="mt-2">{{ connectionStatus }}</p>
       </div>
 
       <div class="grid md:grid-cols-2 gap-6">
@@ -17,7 +18,7 @@
           <p class="text-blue-200 mb-6">Start a new game and invite a friend</p>
           <button 
             @click="createRoom"
-            :disabled="isCreating"
+            :disabled="isCreating || !isConnected"
             class="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-500 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200"
           >
             <span v-if="!isCreating">Create New Room</span>
@@ -46,7 +47,7 @@
             >
             <button 
               @click="joinRoom"
-              :disabled="!joinRoomId.trim() || isJoining"
+              :disabled="!joinRoomId.trim() || isJoining || !isConnected"
               class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-500 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200"
             >
               <span v-if="!isJoining">Join Room</span>
@@ -86,14 +87,34 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { createRoom as apiCreateRoom, getRoomStatus } from '../services/api.js'
+import { ref, onMounted } from 'vue'
+import { createRoom as apiCreateRoom, getRoomStatus, getServerHealth } from '../services/api.js'
 
 const emit = defineEmits(['join-game'])
 
 const joinRoomId = ref('')
 const isCreating = ref(false)
 const isJoining = ref(false)
+const connectionStatus = ref('Checking connection...')
+const isConnected = ref(false)
+
+// Test backend connection
+const testConnection = async () => {
+  try {
+    const response = await getServerHealth()
+    console.log('Backend connection test:', response)
+    connectionStatus.value = '✅ Connected to backend'
+    isConnected.value = true
+  } catch (error) {
+    console.error('Backend connection test failed:', error)
+    connectionStatus.value = '❌ Failed to connect to backend'
+    isConnected.value = false
+  }
+}
+
+onMounted(() => {
+  testConnection()
+})
 
 const generatePlayerName = () => {
   const prefix = ['Player', 'Gamer', 'User']
